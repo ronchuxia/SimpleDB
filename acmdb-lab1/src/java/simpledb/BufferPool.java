@@ -28,7 +28,7 @@ public class BufferPool {
     public static final int DEFAULT_PAGES = 50;
 
     private final int numPages;
-    private final ConcurrentHashMap<Integer, Page> idToPage;
+    private final ConcurrentHashMap<PageId, Page> idToPage;
 
     /**
      * Creates a BufferPool that caches up to numPages pages.
@@ -42,7 +42,7 @@ public class BufferPool {
     }
     
     public static int getPageSize() {
-      return pageSize;
+        return pageSize;
     }
     
     // THIS FUNCTION SHOULD ONLY BE USED FOR TESTING!!
@@ -70,10 +70,22 @@ public class BufferPool {
      * @param pid the ID of the requested page
      * @param perm the requested permissions on the page
      */
-    public  Page getPage(TransactionId tid, PageId pid, Permissions perm)
+    public Page getPage(TransactionId tid, PageId pid, Permissions perm)
         throws TransactionAbortedException, DbException {
         // some code goes here
-        return null;
+        if (idToPage.containsKey(pid)) {
+            return idToPage.get(pid);
+        }
+        else {
+            if (idToPage.size() < numPages) {
+                int tableId = pid.getTableId();
+                DbFile file = Database.getCatalog().getDatabaseFile(tableId);
+                Page page = file.readPage(pid);
+                idToPage.put(pid, page);
+                return page;
+            }
+            else throw new DbException("Insufficient space in buffer pool.");
+        }
     }
 
     /**
