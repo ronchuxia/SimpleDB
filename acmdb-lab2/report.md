@@ -18,6 +18,7 @@ Eviction policy 使用 LRU 算法。具体实现过程如下：
 
 ## Insertion
 `ArrayList<Page> insertTuple(TransactionId tid, Tuple t);`
+
 插入时，可能需要递归地修改父节点。如果修改的父节点数量超过了 BufferPool 的容量，会导致脏页在被最终确定之前就被写回到磁盘。因此，`insertTuple()` 维护一个 local cache，用于缓存插入过程中所有的脏页。在调用 `BTreeFile.readPage()` 时，会自动根据读取页的访问权限（如果是 `Permissions.READ_WRITE`），将读取页添加到 local cache 中。
 1. 调用 `BTreeFile.findLeafPage()` 查找应插入的叶子节点
 2. 调用 `BTreeLeafPage.insertTuple()` 进行插入
