@@ -126,16 +126,28 @@ public class HeapFile implements DbFile {
     public ArrayList<Page> insertTuple(TransactionId tid, Tuple t)
             throws DbException, IOException, TransactionAbortedException {
         // some code goes here
-        return null;
         // not necessary for lab1
+        RecordId recordId = t.getRecordId();
+        PageId pageId = recordId.getPageId();
+        ArrayList<Page> dirtyPages = new ArrayList<>();
+        HeapPage dirtyPage = (HeapPage) Database.getBufferPool().getPage(tid, pageId, Permissions.READ_WRITE);
+        dirtyPage.insertTuple(t);
+        dirtyPages.add(dirtyPage);
+        return dirtyPages;
     }
 
     // see DbFile.java for javadocs
     public ArrayList<Page> deleteTuple(TransactionId tid, Tuple t) throws DbException,
             TransactionAbortedException {
         // some code goes here
-        return null;
         // not necessary for lab1
+        RecordId recordId = t.getRecordId();
+        PageId pageId = recordId.getPageId();
+        ArrayList<Page> dirtyPages = new ArrayList<>();
+        HeapPage dirtyPage = (HeapPage) Database.getBufferPool().getPage(tid, pageId, Permissions.READ_WRITE);
+        dirtyPage.deleteTuple(t);
+        dirtyPages.add(dirtyPage);
+        return dirtyPages;
     }
 
     // see DbFile.java for javadocs
