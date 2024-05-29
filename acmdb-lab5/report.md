@@ -27,3 +27,7 @@
 - `unlock`：释放锁
 - `getLockedPages`：获取某个 `Transaction` 锁住的所有页面
 - `unlockPages`：释放某个 `Transaction` 持有的所有锁
+
+## BufferPool
+
+在 `getPage()` 前加锁，如果自旋超过 150 ms，就放弃当前 `Transaction`，以防止死锁。
