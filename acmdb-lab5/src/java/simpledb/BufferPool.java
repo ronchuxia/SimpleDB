@@ -79,8 +79,12 @@ public class BufferPool {
         // some code goes here
 
         // get lock
+        long startTime = System.currentTimeMillis();
         while (!locks.lock(tid, pid, perm)) {
-            continue;
+            long currentTime = System.currentTimeMillis();
+            if(currentTime - startTime > 150) {
+                throw new TransactionAbortedException();
+            }
         }
 
         if (idToPage.containsKey(pid)) {

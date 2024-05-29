@@ -136,6 +136,7 @@ public class Locks {
         for (PageId pid : transactionPidToLock.keySet()) {
             unlock(tid, pid);
         }
+
         tidToLock.remove(tid);
     }
 }
