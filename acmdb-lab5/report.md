@@ -1,21 +1,29 @@
 # Design Choices
-## TableStats
-1. 统计 DbFile 中 Tuple 的个数，用于估计 SeqScan 的开销。
-    - `double estimateScanCost()` ：估计顺序读取 DbFile 中所有 Tuple 的开销（`cost = numPages * ioCostPerPage`）
+## Lock
 
-2. 为 DbFile 的每个 Field 构建一个 Histogram，用于估计 DbFile 经过某次 Filter 操作后的 cardinality（filter selectivity estimation）。
-    - `double estimateSelectivity(int field, Predicate.Op op, Field constant)`：估计 `Predicate op` 的 selectivity（使用 histogram 进行估计）
-    - `int estimateTableCardinality(double selectivityFactor)`：估计 DbFile 经过某次 Filter 操作后的 cardinality
+一个锁
+- `tid`：持有该锁的 `Transaction` 的 `TransactionId`
+- `pid`：持有该锁的 `Page` 的 `PageId`
+- `isExclusive`：该锁是否为独享锁
 
-## JoinOptimizer
-1. 估计某次 Join 的开销和经过某次 Join 操作后的 cardinality。
-    - `estimateJoinCost(LogicalJoinNode j, int card1, int card2, double cost1, double cost2)`：估计某次 join 操作的开销（`cost = scancost(t1) + ntups(t1) * scancost(t2) + ntups(t1) * ntups(t2)`）
-    - `estimateJoinCardinality(LogicalJoinNode j, int card1, int card2, boolean t1pkey, boolean t2pkey, Map<String, TableStats> stats)`：估计某次 join 操作后的 cardinality
+每个 `Transaction` 的每个 `Page` 只可以有一个锁。
 
-2. 使用 Selinger 算法（动态规划）选择最佳的 join 顺序
-    - `Vector<LogicalJoinNode> orderJoins(HashMap<String, TableStats> stats, HashMap<String, Double> filterSelectivities, boolean explain)`
+## Locks
 
-# Time Spent
-1 天。
-
-
+所有锁
+- `tidToLock`：`Transaction` 与锁的对应关系
+- `pidToLock`：`Page` 与锁的对应关系
+- `lock`：加锁
+  - 如果这个 `Transaction` 的这个 `Page` 已经有了一个锁
+    - 如果这个锁是独享锁，则获得该锁
+    - 如果这个锁是共享锁，且要申请的锁也是共享锁，则获得该锁
+    - 如果这个锁是共享锁，但要申请的锁是独享锁
+      - 如果这个 `Page` 只有这一个锁，则升级并获得该锁
+      - 如果这个 `Page` 不只有一个锁，则阻塞
+  - 如果这个 `Transaction` 的这个 `Page` 还没有锁
+   - 如果申请的锁是共享锁，但这个 `Page` 有独享锁，则阻塞
+   - 如果申请的锁是独享锁，但这个 `Page` 有锁，则阻塞
+   - 其他情况，则构造一个新锁并获得该锁
+- `unlock`：释放锁
+- `getLockedPages`：获取某个 `Transaction` 锁住的所有页面
+- `unlockPages`：释放某个 `Transaction` 持有的所有锁
